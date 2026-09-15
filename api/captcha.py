@@ -26,7 +26,7 @@ class handler(BaseHTTPRequestHandler):
                 [(0, 0), (width, height)], radius=16, fill=(122, 134, 175, 255)
             )
 
-            # ব্যাকগ্রাউন্ডে টেক্সচার / গ্রেইন নয়েজ যোগ করা
+            # ব্যাকগ্রাউন্ডে টেক্সচার / গ্রেইন নয়েজ
             for _ in range(4000):
                 nx = random.randint(0, width - 1)
                 ny = random.randint(0, height - 1)
@@ -41,17 +41,47 @@ class handler(BaseHTTPRequestHandler):
 
             img.paste(bg_box, (0, 0), bg_box)
 
-            # ২. বোল্ড স্ল্যাব ফন্ট লোড (Google Fonts থেকে সরাসরি লোড)
+            # ২. ফন্ট লোড করা
             try:
-                font_url = "https://github.com/google/fonts/raw/main/ofl/alfaslabone/AlfaSlabOne-Regular.ttf"
-                font_res = requests.get(font_url, timeout=5)
-                font_num = ImageFont.truetype(io.BytesIO(font_res.content), 76)
+                # ক্যাপচা নাম্বারের জন্য বোল্ড ফন্ট
+                num_font_url = "https://github.com/google/fonts/raw/main/ofl/alfaslabone/AlfaSlabOne-Regular.ttf"
+                num_res = requests.get(num_font_url, timeout=5)
+                font_num = ImageFont.truetype(io.BytesIO(num_res.content), 68)
+
+                # ব্র্যান্ডিং টেক্সটের জন্য বোল্ড ফন্ট
+                brand_font_url = "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono-Bold.ttf"
+                brand_res = requests.get(brand_font_url, timeout=5)
+                font_brand = ImageFont.truetype(
+                    io.BytesIO(brand_res.content), 12
+                )
             except:
                 font_num = ImageFont.load_default()
+                font_brand = ImageFont.load_default()
 
-            cx, cy = width // 2, (height // 2) - 3
+            # ৩. উপরে "SN BOT CREATOR" ব্র্যান্ডিং টেক্সট যোগ করা
+            draw = ImageDraw.Draw(img)
+            brand_text = "⚡ SN BOT CREATOR"
 
-            # ৩. ডার্ক ৩D শ্যাডো (Dark Depth Shadow)
+            # ব্র্যান্ডিং টেক্সটের শ্যাডো ও মূল কালার
+            draw.text(
+                (width // 2 + 1, 18),
+                brand_text,
+                fill=(45, 54, 82, 180),
+                font=font_brand,
+                anchor="mm",
+            )
+            draw.text(
+                (width // 2, 17),
+                brand_text,
+                fill=(240, 245, 255, 230),
+                font=font_brand,
+                anchor="mm",
+            )
+
+            # ৪. ক্যাপচা নাম্বার পজিশন
+            cx, cy = width // 2, (height // 2) + 14
+
+            # ডার্ক ৩D শ্যাডো (Depth Shadow)
             shadow_mask = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             shadow_draw = ImageDraw.Draw(shadow_mask)
             for offset in [(4, 4), (3, 3), (2, 2), (1, 2)]:
@@ -65,21 +95,20 @@ class handler(BaseHTTPRequestHandler):
 
             img.paste(shadow_mask, (0, 0), shadow_mask)
 
-            # ৪. চক / স্কেচ হ্যাচড টেক্সট মাস্ক (Chalk/Hatched Effect)
+            # ৫. চক / স্কেচ হ্যাচড টেক্সট ইফেক্ট
             text_mask = Image.new("L", (width, height), 0)
             t_draw = ImageDraw.Draw(text_mask)
             t_draw.text((cx, cy), text, fill=255, font=font_num, anchor="mm")
 
-            # টেক্সটের ভেতরে ডায়াগনাল চক স্কেচ লাইন তৈরি
             chalk_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             c_draw = ImageDraw.Draw(chalk_layer)
 
-            # বেস লাইট শেইড
+            # হালকা বেস ফিল
             c_draw.rectangle(
                 [(0, 0), (width, height)], fill=(240, 245, 255, 100)
             )
 
-            # ডায়াগনাল লাইনস (Sketch Hatching)
+            # চক স্কেচ লাইন
             for i in range(-height, width + height, 3):
                 c_draw.line(
                     [(i, 0), (i + height, height)],
@@ -93,7 +122,7 @@ class handler(BaseHTTPRequestHandler):
                         width=2,
                     )
 
-            # টেক্সটের বর্ডার ও শেপ স্পষ্ট করার জন্য আউটলাইন
+            # টেক্সট আউটলাইন বর্ডার
             c_draw.text(
                 (cx, cy),
                 text,
@@ -103,10 +132,10 @@ class handler(BaseHTTPRequestHandler):
                 anchor="mm",
             )
 
-            # মাস্ক অনুযায়ী টেক্সট পেস্ট করা
+            # মাস্ক অনুযায়ী পেস্ট
             img.paste(chalk_layer, (0, 0), text_mask)
 
-            # ৫. ইমেজ রিটার্ন
+            # ৬. ইমেজ রিটার্ন
             buffer = io.BytesIO()
             img.convert("RGB").save(buffer, format="PNG", quality=100)
 

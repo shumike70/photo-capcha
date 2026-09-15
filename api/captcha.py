@@ -1,80 +1,59 @@
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import io
-from PIL import Image, ImageDraw
+import requests
+from PIL import Image, ImageDraw, ImageFont
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         query = parse_qs(urlparse(self.path).query)
-        text = str(query.get('text', ['3782'])[0])[:4]
+        text = query.get('text', ['4289'])[0]
 
         try:
-            # কমপ্যাক্ট সাইবার সাইজ (360x120)
+            # 🎯 হুবহু নিচের রেফারেন্স সাইজ (Width: 360, Height: 120)
             width, height = 360, 120
-            img = Image.new("RGBA", (width, height), (5, 10, 24, 255))
+            img = Image.new("RGBA", (width, height), (8, 14, 28, 255))
             draw = ImageDraw.Draw(img)
 
-            # ১. ব্যাকগ্রাউন্ড সাইবার গ্রিড
-            for gy in range(0, height, 15):
-                draw.line([(0, gy), (width, gy)], fill=(12, 25, 55, 255), width=1)
-            for gx in range(0, width, 24):
-                draw.line([(gx, 0), (gx, height)], fill=(12, 25, 55, 255), width=1)
+            # ১. ব্যাকগ্রাউন্ড সাইবার গ্রিড ও টেক্সচার (Cyber Lines)
+            for y in range(0, height, 15):
+                draw.line([(0, y), (width, y)], fill=(15, 28, 55, 255), width=1)
+            for x in range(0, width, 25):
+                draw.line([(x, 0), (x, height)], fill=(15, 28, 55, 255), width=1)
 
-            # ২. লেজার স্ক্যানার লাইন (Cyber Laser Beam)
-            draw.line([(0, 60), (width, 60)], fill=(0, 229, 255, 120), width=2)
-            draw.line([(0, 61), (width, 61)], fill=(0, 229, 255, 40), width=4)
+            # আউটার ৩D নিয়ন বর্ডার
+            draw.rounded_rectangle([(3, 3), (width-4, height-4)], radius=14, outline=(0, 229, 255, 200), width=2)
+            draw.rounded_rectangle([(6, 6), (width-7, height-7)], radius=12, outline=(0, 150, 200, 80), width=1)
 
-            # ৩. আউটার ৩D নিয়ন বর্ডার
-            draw.rounded_rectangle([(3, 3), (width-4, height-4)], radius=12, outline=(0, 229, 255, 240), width=2)
-            draw.rounded_rectangle([(6, 6), (width-7, height-7)], radius=10, outline=(0, 150, 220, 80), width=1)
+            # ২. টপ ব্র্যান্ডিং ("⚡ SN BOT CREATOR")
+            brand_text = "⚡ SN BOT CREATOR"
+            try:
+                # বোল্ড ফন্ট লোড (Google CDN থেকে সরাসরি লোড হবে, তাই কখনো ফন্ট মিসিং হবে না)
+                font_url = "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono-Bold.ttf"
+                font_res = requests.get(font_url, timeout=4)
+                font_num = ImageFont.truetype(io.BytesIO(font_res.content), 56)
+                font_brand = ImageFont.truetype(io.BytesIO(font_res.content), 12)
+            except:
+                font_num = ImageFont.load_default()
+                font_brand = ImageFont.load_default()
 
-            # ৪. ৭-সেগমেন্ট ৩D বড় সাইবার নাম্বার ড্রয়ার
-            segments = {
-                '0': ['a', 'b', 'c', 'd', 'e', 'f'],
-                '1': ['b', 'c'],
-                '2': ['a', 'b', 'g', 'e', 'd'],
-                '3': ['a', 'b', 'g', 'c', 'd'],
-                '4': ['f', 'g', 'b', 'c'],
-                '5': ['a', 'f', 'g', 'c', 'd'],
-                '6': ['a', 'f', 'g', 'e', 'c', 'd'],
-                '7': ['a', 'b', 'c'],
-                '8': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
-                '9': ['a', 'b', 'c', 'd', 'f', 'g']
-            }
+            draw.text((width // 2, 20), brand_text, fill=(0, 229, 255, 200), font=font_brand, anchor="mm")
 
-            def draw_digit(draw_obj, char, x, y, color, width_val):
-                w, h = 34, 56  # অনেক বড় ও স্পষ্ট বোল্ড সাইজ
-                hw = h // 2
-                segs = segments.get(char, segments['0'])
-                lines = {
-                    'a': [(x+5, y), (x+w-5, y)],
-                    'b': [(x+w, y+5), (x+w, y+hw-3)],
-                    'c': [(x+w, y+hw+3), (x+w, y+h-5)],
-                    'd': [(x+5, y+h), (x+w-5, y+h)],
-                    'e': [(x, y+hw+3), (x, y+h-5)],
-                    'f': [(x, y+5), (x, y+hw-3)],
-                    'g': [(x+5, y+hw), (x+w-5, y+hw)]
-                }
-                for seg in segs:
-                    draw_obj.line(lines[seg], fill=color, width=width_val)
+            # ৩. ৩D মাল্টি-লেয়ার গ্লোয়িং নাম্বার (3D Embossed Effect)
+            spaced_text = "  ".join(list(text))
+            cx, cy = width // 2, (height // 2) + 12
 
-            # ৫. ৪টি ডিজিট একদম সেন্টারে ৩D গ্লো সহ আঁকা
-            start_x = 72
-            spacing = 58
-            for idx, ch in enumerate(text):
-                dx = start_x + (idx * spacing)
-                dy = 32
+            # ৩D শ্যাডো লেয়ার (Bottom-Right Dark Shadow)
+            for offset in [(4, 4), (3, 3), (2, 2)]:
+                draw.text((cx + offset[0], cy + offset[1]), spaced_text, fill=(2, 6, 18, 255), font=font_num, anchor="mm")
 
-                # পেছনের ডার্ক ৩D শ্যাডো
-                draw_digit(draw, ch, dx+4, dy+4, (2, 5, 15, 255), 7)
-                # ৩D নিয়ন গ্লো লেয়ার
-                draw_digit(draw, ch, dx, dy, (0, 229, 255, 120), 8)
-                # ৩D মেইন নিয়ন বডি
-                draw_digit(draw, ch, dx, dy, (0, 229, 255, 255), 5)
-                # সামনের উজ্জ্বল হোয়াইট কোর
-                draw_digit(draw, ch, dx, dy, (245, 255, 255, 255), 2)
+            # ৩D নিয়ন ডেপথ গ্লো (Cyan Deep Layer)
+            draw.text((cx + 1, cy + 1), spaced_text, fill=(0, 180, 220, 255), font=font_num, anchor="mm")
 
-            # ৬. পিওর PNG আউটপুট পাঠানো (Content-Type: image/png)
+            # ৩D মেইন ব্রাইট হোয়াইট-সায়ান টেক্সট (Front Glowing Layer)
+            draw.text((cx, cy), spaced_text, fill=(240, 255, 255, 255), font=font_num, anchor="mm")
+
+            # ইমেজ এক্সপোর্ট
             buffer = io.BytesIO()
             img.convert("RGB").save(buffer, format="PNG", quality=100)
             

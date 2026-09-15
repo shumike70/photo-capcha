@@ -2,76 +2,96 @@ from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import io
 import math
-import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         query = parse_qs(urlparse(self.path).query)
-        text = query.get('text', ['4289'])[0]
+        text = str(query.get('text', ['3782'])[0])[:4]
 
         try:
             width, height = 360, 120
-            
-            # বোল্ড ফন্ট লোড
-            try:
-                font_url = "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono-Bold.ttf"
-                font_res = requests.get(font_url, timeout=4)
-                font_num = ImageFont.truetype(io.BytesIO(font_res.content), 54)
-                font_brand = ImageFont.truetype(io.BytesIO(font_res.content), 12)
-            except:
-                font_num = ImageFont.load_default()
-                font_brand = ImageFont.load_default()
-
-            spaced_text = "  ".join(list(text))
             frames = []
-            total_frames = 8  # স্মুথ অ্যানিমেশনের জন্য ৮টি ফ্রেম
+            total_frames = 8
+
+            # ৭-সেগমেন্ট ডিজিটাল ৩D সাইবার নাম্বার ড্রয়ার
+            segments = {
+                '0': ['a', 'b', 'c', 'd', 'e', 'f'],
+                '1': ['b', 'c'],
+                '2': ['a', 'b', 'g', 'e', 'd'],
+                '3': ['a', 'b', 'g', 'c', 'd'],
+                '4': ['f', 'g', 'b', 'c'],
+                '5': ['a', 'f', 'g', 'c', 'd'],
+                '6': ['a', 'f', 'g', 'e', 'c', 'd'],
+                '7': ['a', 'b', 'c'],
+                '8': ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+                '9': ['a', 'b', 'c', 'd', 'f', 'g']
+            }
+
+            def draw_digit(draw_obj, char, x, y, color, width_val):
+                w, h = 32, 54  # বড় বোল্ড সাইজ
+                hw = h // 2
+                segs = segments.get(char, segments['0'])
+                lines = {
+                    'a': [(x+5, y), (x+w-5, y)],
+                    'b': [(x+w, y+5), (x+w, y+hw-3)],
+                    'c': [(x+w, y+hw+3), (x+w, y+h-5)],
+                    'd': [(x+5, y+h), (x+w-5, y+h)],
+                    'e': [(x, y+hw+3), (x, y+h-5)],
+                    'f': [(x, y+5), (x, y+hw-3)],
+                    'g': [(x+5, y+hw), (x+w-5, y+hw)]
+                }
+                for seg in segs:
+                    draw_obj.line(lines[seg], fill=color, width=width_val)
 
             # --- অ্যানিমেশন ফ্রেম তৈরি ---
             for i in range(total_frames):
-                frame = Image.new("RGBA", (width, height), (6, 12, 24, 255))
+                frame = Image.new("RGBA", (width, height), (5, 10, 22, 255))
                 draw = ImageDraw.Draw(frame)
 
-                # ১. ব্যাকগ্রাউন্ড গ্রিড
-                for y in range(0, height, 15):
-                    draw.line([(0, y), (width, y)], fill=(12, 24, 48, 255), width=1)
-                for x in range(0, width, 25):
-                    draw.line([(x, 0), (x, height)], fill=(12, 24, 48, 255), width=1)
+                # ১. ব্যাকগ্রাউন্ড সাইবার গ্রিড
+                for gy in range(0, height, 16):
+                    draw.line([(0, gy), (width, gy)], fill=(12, 24, 50, 255), width=1)
+                for gx in range(0, width, 24):
+                    draw.line([(gx, 0), (gx, height)], fill=(12, 24, 50, 255), width=1)
 
-                # ২. মুভিং সাইবার লেজার স্ক্যানার লাইন (উপর থেকে নিচে নড়বে)
+                # ২. মুভিং লেজার স্ক্যানার অ্যানিমেশন (Moving Scanner)
                 scan_y = int((i / total_frames) * height)
-                draw.line([(0, scan_y), (width, scan_y)], fill=(0, 229, 255, 180), width=2)
-                draw.line([(0, scan_y+1), (width, scan_y+1)], fill=(0, 229, 255, 70), width=4)
+                draw.line([(0, scan_y), (width, scan_y)], fill=(0, 229, 255, 160), width=2)
+                draw.line([(0, scan_y+1), (width, scan_y+1)], fill=(0, 229, 255, 60), width=4)
 
-                # ৩. আউটার পালসিং নিয়ন বর্ডার
-                pulse_alpha = int(180 + 70 * math.sin(i * math.pi / 4))
-                draw.rounded_rectangle([(3, 3), (width-4, height-4)], radius=14, outline=(0, 229, 255, pulse_alpha), width=2)
+                # ৩. আউটার ৩D পালসিং নিয়ন বর্ডার
+                pulse = int(180 + 75 * math.sin(i * math.pi / 4))
+                draw.rounded_rectangle([(4, 4), (width-5, height-5)], radius=12, outline=(0, 229, 255, pulse), width=2)
 
-                # ৪. টপ ব্র্যান্ডিং
-                draw.text((width // 2, 18), "⚡ SN BOT CREATOR", fill=(0, 229, 255, 220), font=font_brand, anchor="mm")
+                # ৪. ৪টি ডিজিট একদম সেন্টারে বড় করে আঁকা
+                start_x = 75
+                spacing = 56
+                offset_glitch = int(math.sin(i * math.pi / 4) * 2)
 
-                # ৫. ৩D টেক্সট ভাইব্রেশন ও গ্লোয়িং মুভমেন্ট (Glitch Motion)
-                offset_x = int(math.sin(i * math.pi / 4) * 2)
-                cx, cy = (width // 2) + offset_x, (height // 2) + 12
+                for idx, ch in enumerate(text):
+                    dx = start_x + (idx * spacing) + offset_glitch
+                    dy = 42
 
-                # পেছনের ডার্ক ৩D শ্যাডো
-                draw.text((cx + 3, cy + 3), spaced_text, fill=(2, 6, 15, 255), font=font_num, anchor="mm")
-                # মাঝের ব্লু গ্লো
-                draw.text((cx + 1, cy + 1), spaced_text, fill=(0, 180, 220, 255), font=font_num, anchor="mm")
-                # সামনের ব্রাইট হোয়াইট/সায়ান গ্লোয়িং টেক্সট
-                draw.text((cx, cy), spaced_text, fill=(240, 255, 255, 255), font=font_num, anchor="mm")
+                    # ৩D ডেপথ ডার্ক শ্যাডো
+                    draw_digit(draw, ch, dx+3, dy+3, (2, 8, 20, 255), 7)
+                    # ৩D নিয়ন গ্লো লেয়ার
+                    draw_digit(draw, ch, dx, dy, (0, 229, 255, 120), 8)
+                    # ৩D মেইন নিয়ন লেয়ার
+                    draw_digit(draw, ch, dx, dy, (0, 229, 255, 255), 5)
+                    # সামনের ব্রাইট হোয়াইট হাইলাইট
+                    draw_digit(draw, ch, dx, dy, (240, 255, 255, 255), 2)
 
                 frames.append(frame.convert("P", palette=Image.ADAPTIVE))
 
-            # জিআইএফ (GIF) আউটপুট
             buffer = io.BytesIO()
             frames[0].save(
                 buffer,
                 format="GIF",
                 save_all=True,
                 append_images=frames[1:],
-                duration=100,  # প্রতি ফ্রেমের স্পিড (১০০ মিলিসেকেন্ড)
-                loop=0         # অনবরত লুপে নড়বে
+                duration=90,
+                loop=0
             )
 
             self.send_response(200)

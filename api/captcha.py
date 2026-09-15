@@ -89,7 +89,7 @@ class handler(BaseHTTPRequestHandler):
             cx, cy = width // 2, (height // 2) + 14
 
             # 3. Branding Text
-            brand_text = "⚡ SN BOT CREATOR"
+            brand_text = "SN BOT CREATOR"
             draw.text((cx, 28), brand_text, fill=(30, 38, 62, 160), font=font_brand, anchor="mm")
             draw.text((cx, 26), brand_text, fill=(240, 245, 255, 240), font=font_brand, anchor="mm")
 

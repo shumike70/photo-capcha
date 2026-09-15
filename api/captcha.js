@@ -17,7 +17,7 @@ export default function handler(request) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage: 'url(https://i.ibb.co.com/Mxpk7wwc/image.png)',
+          backgroundImage: 'url(https://i.ibb.co.com/Mxpk7wwc.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}

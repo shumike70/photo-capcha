@@ -5,97 +5,101 @@ from urllib.parse import parse_qs, urlparse
 from PIL import Image, ImageDraw, ImageFont
 import requests
 
+# ক্যাশিং যাতে প্রতিবার রিকোয়েস্টে ফন্ট ডাউনলোড করতে সময় না নেয়
+CACHED_FONT_DATA = None
+
+
+def get_bold_font(size):
+    global CACHED_FONT_DATA
+    if CACHED_FONT_DATA is None:
+        try:
+            # নির্ভরযোগ্য হাই-স্পিড CDN
+            url = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/alfaslabone/AlfaSlabOne-Regular.ttf"
+            res = requests.get(url, timeout=10)
+            if res.status_code == 200:
+                CACHED_FONT_DATA = res.content
+        except Exception:
+            pass
+
+    if CACHED_FONT_DATA:
+        return ImageFont.truetype(io.BytesIO(CACHED_FONT_DATA), size)
+
+    # ব্যাকআপ ফন্ট
+    return ImageFont.load_default()
+
 
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         query = parse_qs(urlparse(self.path).query)
-        text = query.get("text", ["4233"])[0]
+        text = query.get("text", ["4351"])[0]
 
         try:
-            # ক্যাপচা বক্সের সাইজ
-            width, height = 400, 140
+            # ক্যাপচা ফ্রেম সাইজ (রেফারেন্স রেশিও)
+            width, height = 500, 200
 
-            # ১. ব্যাকগ্রাউন্ড ক্যানভাস
+            # ১. স্লেট-পার্পল ব্যাকগ্রাউন্ড তৈরি
             img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+            bg_draw = ImageDraw.Draw(img)
 
-            # রাউন্ডেড স্লেট-পার্পল বক্স
-            bg_box = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-            bg_draw = ImageDraw.Draw(bg_box)
+            # রাউন্ডেড বক্স
             bg_draw.rounded_rectangle(
-                [(0, 0), (width, height)], radius=18, fill=(122, 134, 175, 255)
+                [(0, 0), (width, height)], radius=24, fill=(132, 146, 192, 255)
             )
 
-            # ব্যাকগ্রাউন্ডে টেক্সচার / নয়েজ
-            for _ in range(4500):
+            # ব্যাকগ্রাউন্ডের টেক্সচার / ফাইন নয়েজ
+            for _ in range(7000):
                 nx = random.randint(0, width - 1)
                 ny = random.randint(0, height - 1)
-                noise_color = random.choice(
+                n_color = random.choice(
                     [
-                        (102, 114, 155, 180),
-                        (142, 154, 196, 180),
-                        (112, 124, 165, 200),
+                        (108, 122, 168, 160),
+                        (156, 170, 218, 160),
+                        (120, 134, 180, 180),
                     ]
                 )
-                bg_draw.point((nx, ny), fill=noise_color)
+                bg_draw.point((nx, ny), fill=n_color)
 
-            img.paste(bg_box, (0, 0), bg_box)
+            # ২. ফন্ট সাইজ একদম বড় (Size: 110)
+            font_num = get_bold_font(110)
+            font_brand = get_bold_font(18)
 
-            # ২. ফন্ট লোড করা
-            try:
-                # ক্যাপচা নাম্বারের জন্য এক্সট্রা বোল্ড ও বড় ফন্ট (Size: 92)
-                num_font_url = "https://github.com/google/fonts/raw/main/ofl/alfaslabone/AlfaSlabOne-Regular.ttf"
-                num_res = requests.get(num_font_url, timeout=5)
-                font_num = ImageFont.truetype(io.BytesIO(num_res.content), 92)
+            cx, cy = width // 2, (height // 2) + 12
 
-                # ব্র্যান্ডিং টেক্সটের ফন্ট (Size: 15)
-                brand_font_url = "https://github.com/google/fonts/raw/main/apache/robotomono/RobotoMono-Bold.ttf"
-                brand_res = requests.get(brand_font_url, timeout=5)
-                font_brand = ImageFont.truetype(
-                    io.BytesIO(brand_res.content), 15
-                )
-            except:
-                font_num = ImageFont.load_default()
-                font_brand = ImageFont.load_default()
-
-            # ৩. উপরে "⚡ SN BOT CREATOR" ব্র্যান্ডিং টেক্সট
-            draw = ImageDraw.Draw(img)
+            # ৩. উপরে ব্র্যান্ডিং "⚡ SN BOT CREATOR"
             brand_text = "⚡ SN BOT CREATOR"
-
-            # ব্র্যান্ডিং টেক্সটের ড্রপ শ্যাডো ও কালার
-            draw.text(
-                (width // 2 + 1, 20),
+            # ব্র্যান্ডিং শ্যাডো + টেক্সট
+            bg_draw.text(
+                (width // 2 + 1, 26),
                 brand_text,
-                fill=(45, 54, 82, 190),
+                fill=(45, 54, 82, 160),
                 font=font_brand,
                 anchor="mm",
             )
-            draw.text(
-                (width // 2, 19),
+            bg_draw.text(
+                (width // 2, 25),
                 brand_text,
-                fill=(240, 245, 255, 240),
+                fill=(245, 248, 255, 230),
                 font=font_brand,
                 anchor="mm",
             )
 
-            # ৪. বড় ৩D ক্যাপচা নাম্বারের পজিশন
-            cx, cy = width // 2, (height // 2) + 16
-
-            # ৩D ডার্ক শ্যাডো লেয়ার (Bold Deep Shadow)
+            # ৪. বড় ৩D ডার্ক শ্যাডো (Dark Depth Shadow)
             shadow_mask = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             shadow_draw = ImageDraw.Draw(shadow_mask)
-            for offset in [(5, 5), (4, 4), (3, 3), (2, 2), (1, 1)]:
+
+            for offset in [(7, 7), (6, 6), (5, 5), (4, 4), (3, 3), (2, 2)]:
                 shadow_draw.text(
                     (cx + offset[0], cy + offset[1]),
                     text,
-                    fill=(42, 50, 78, 255),
+                    fill=(45, 55, 84, 255),
                     font=font_num,
                     anchor="mm",
                 )
 
             img.paste(shadow_mask, (0, 0), shadow_mask)
 
-            # ৫. চক / স্কেচ হ্যাচড ইফেক্ট লেয়ার
+            # ৫. চক / হ্যাচড স্কেচ লেয়ার (White Chalk Effect)
             text_mask = Image.new("L", (width, height), 0)
             t_draw = ImageDraw.Draw(text_mask)
             t_draw.text((cx, cy), text, fill=255, font=font_num, anchor="mm")
@@ -103,26 +107,26 @@ class handler(BaseHTTPRequestHandler):
             chalk_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             c_draw = ImageDraw.Draw(chalk_layer)
 
-            # বেস লাইট শেইড
+            # হালকা হোয়াইট বেস
             c_draw.rectangle(
-                [(0, 0), (width, height)], fill=(245, 248, 255, 120)
+                [(0, 0), (width, height)], fill=(255, 255, 255, 140)
             )
 
-            # চক স্কেচ ডায়াগনাল লাইন
+            # ডায়াগনাল চক স্কেচ লাইন
             for i in range(-height * 2, width + height * 2, 4):
                 c_draw.line(
                     [(i, 0), (i + height, height)],
-                    fill=(255, 255, 255, 240),
+                    fill=(255, 255, 255, 245),
                     width=2,
                 )
                 if i % 8 == 0:
                     c_draw.line(
                         [(i, 0), (i + height, height)],
-                        fill=(220, 230, 255, 200),
+                        fill=(225, 235, 255, 200),
                         width=3,
                     )
 
-            # চারপাশের শার্প হোয়াইট আউটলাইন
+            # টেক্সটের চারপাশে শার্প হোয়াইট স্ট্রোক/বর্ডার
             c_draw.text(
                 (cx, cy),
                 text,
@@ -132,7 +136,7 @@ class handler(BaseHTTPRequestHandler):
                 anchor="mm",
             )
 
-            # মাস্ক অনুযায়ী পেস্ট
+            # মাস্ক অনুযায়ী ব্লেন্ড করা
             img.paste(chalk_layer, (0, 0), text_mask)
 
             # ৬. ইমেজ রিটার্ন
